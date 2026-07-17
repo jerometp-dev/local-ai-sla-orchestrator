@@ -14,7 +14,8 @@ This system is engineered to replace expensive, cloud-dependent analytical layer
 This image illustrates the full orchestration lifecycle: from raw ticket data ingestion, through local AI analysis, to final report archival and stakeholder notifications.
 
 <!-- UPDATE: Drag your n8n canvas screenshot into the placeholder below -->
-<img width="748" height="277" alt="sla engine n8n pic" src="https://github.com/user-attachments/assets/0c1bf173-98dd-44ea-8ff8-d958472cab84" />
+<img width="848" height="475" alt="sla engine n8n pic" src="https://github.com/user-attachments/assets/3b4e2c09-4cdc-41a8-9bb1-92d3991a8bc2" />
+
 
 
 1. **Ingestion & Processing:** Automatically parses daily ticket snapshots and references historical data backlogs on local disk.
