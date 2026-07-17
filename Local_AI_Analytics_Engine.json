@@ -1,0 +1,461 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "triggerAtHour": 4
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "4bf593f2-cd2a-4cf7-aa71-723327c37526",
+      "name": "Start: Daily 4PM Report Run"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Roll the dice for random numbers every time it runs!\nconst totalTickets = Math.floor(Math.random() * 25) + 5;   // 5 to 30 tickets\nconst activeOpen = Math.floor(Math.random() * 8) + 1;      // 1 to 9 open\nconst criticalOutages = Math.floor(Math.random() * 4);     // 0 to 3 outages\nconst responseTime = (Math.random() * 20 + 5).toFixed(1);   // 5.0 to 25.0 mins\n\n// Format these random numbers exactly like your original text file\nconst markdownTemplate = `# DAILY CONTACT CENTER SLA REPORT\n- Total Tickets Processed: ${totalTickets}\n- Active Open Tickets: ${activeOpen}\n- Critical Outages Flagged: ${criticalOutages}\n- Average Response Time: ${responseTime} mins`;\n\n// Hand this clean text down to the rest of the factory line\nreturn [{ json: { text: markdownTemplate } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        0
+      ],
+      "id": "86d3680b-9136-4772-8704-6a20f7268984",
+      "name": "Prepare Today's Raw Tickets"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Grab today's mock statistics from your first JavaScript node\nconst todayText = $('Prepare Today\\'s Raw Tickets').item.json.text;\n\n// Helper to extract numbers from your plain text report safely\nconst extractNumber = (regex, text) => {\n  const match = text.match(regex);\n  return match ? parseFloat(match[1]) : 0;\n};\n\n// Fixed Regex: Stripped out the ** asterisks to match our new clean text format\nconst processed = extractNumber(/- Total Tickets Processed:\\s*(\\d+)/i, todayText);\nconst open = extractNumber(/- Active Open Tickets:\\s*(\\d+)/i, todayText);\nconst outages = extractNumber(/- Critical Outages Flagged:\\s*(\\d+)/i, todayText);\nconst responseTime = extractNumber(/- Average Response Time:\\s*([\\d.]+)/i, todayText);\n\n// 2. Grab existing history by decoding the binary file from your renamed node\nlet history = [];\ntry {\n  // Fixed: Points to 'Fetch Performance History Log' and safely decodes the binary data to text\n  const fileContent = $('Fetch Performance History Log').item.binary.data.toText();\n  \n  if (fileContent && fileContent.trim()) {\n    history = JSON.parse(fileContent);\n  }\n} catch (e) {\n  // If the file was empty, corrupted, or missing, fall back to an empty array\n  history = [];\n}\n\n// 3. Append today's parsed stats with today's date\nhistory.push({\n  date: new Date().toISOString().split('T')[0],\n  tickets_processed: processed,\n  open_tickets: open,\n  outages: outages,\n  avg_response_time: responseTime\n});\n\n// 4. Limit the file to ONLY keep the last 7 entries (rolling 7-day window)\nif (history.length > 7) {\n  history.shift();\n}\n\n// 5. Return the data structure downstream\nreturn [{\n  json: {\n    history_json: JSON.stringify(history, null, 2),\n    history_raw: history\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        0
+      ],
+      "id": "dcea97b6-4e7c-497f-886d-1e7e34ba8190",
+      "name": "Calculate 7-Day Performance"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "history_json",
+        "options": {
+          "fileName": "sla_history.json"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        0
+      ],
+      "id": "52edeb3f-fd1b-4f5f-b290-287ddd7113f6",
+      "name": "Package Past Performance Data"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/home/node/.n8n-files/sla_history.json",
+        "dataPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "5c765970-5def-467b-a975-be47fdffbf9a",
+      "name": "Save Performance History"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an SLA Operations Director. Your job is to analyze today's performance data and compare it directly with the historical metrics from the last 7 days.\n\nToday's SLA Metrics:\n{{ $('Prepare Today\\'s Raw Tickets').item.json.text }}\n\nHistorical Data (Last 7 Days of Logs):\n{{ $('Calculate 7-Day Performance').item.json.history_json }}\n\nIn your \"AI Executive Briefing\" paragraph, write a single analytical paragraph highlighting how today's numbers compare directly to our past averages. Focus only on translating these statistics into practical operational insights. Keep it professional, and do not include any raw markdown lists, keys, or imaginary statistics. Use only the exact numbers provided above.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1008,
+        0
+      ],
+      "id": "ce3151eb-a0e6-4449-8d7f-b41d7996fc93",
+      "name": "AI : Review System Performance"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        256
+      ],
+      "id": "b12a22bb-ce19-4d11-ad1c-6641357f0fc6",
+      "name": "Local AI Engine",
+      "credentials": {
+        "ollamaApi": {
+          "id": "ahMxlX3t6BFurV5X",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1526967556097708144/NQlfuyRlyy5RA2sovBKHw2hnt_ZCIy6yn6KeIO9-etbNFh1cuOaGlVjHdHlDDtEz5axS",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1312,
+        -256
+      ],
+      "id": "94c260b3-b7bd-49f5-8647-4110ac4bd502",
+      "name": "Send AI Commentary to Discord"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "96e60a71-3f45-4f81-8468-71effa340957",
+              "name": "final_report",
+              "value": "={{ $('Prepare Today\\'s Raw Tickets').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "fe5783e6-816c-4fa1-8c3a-c830c8759b32",
+      "name": "Extract Final Metrics",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "06343dd6-3132-4579-ab3c-8762fddc306a",
+              "leftValue": "={{ parseInt($('Extract Final Metrics').item.json.final_report.match(/Critical Outages Flagged:\\s*(\\d+)/)?.[1] || 0) }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        -256
+      ],
+      "id": "03da8b75-3e97-45a0-8fc0-fb8ef2ac776b",
+      "name": "Check for Critical System Outages"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "=/home/node/.n8n-files/daily_sla_report_{{ $today.format('yyyy-MM-dd') }}.md",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1744,
+        0
+      ],
+      "id": "aede9ec0-03a6-4ba8-82d9-a1cb216bb463",
+      "name": "Archive Report to Company Records"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{\n`🟢 **SLA STATUS: HEALTHY** 🟢\n\nAll core systems are operating within normal operational parameters.\n\n\\`\\`\\`yaml\n${$('Extract Final Metrics').item.json.final_report.replace(/\\* \\*\\*/g, '').replace(/\\*\\*/g, '').replace(/\\* /g, '')}\n\\`\\`\\`\n`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        -192
+      ],
+      "id": "77229da4-f404-4b0f-b82d-1b0f41fbdb90",
+      "name": "Post GREEN Status to Discord",
+      "webhookId": "f89a954b-960f-4207-961b-f63818cdcb1a",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "IqMdgVqNIOJK64cH",
+          "name": "Discord Webhook account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{\n`🚨 **CRITICAL SLA ALERT** 🚨\n\nOur daily system check detected an active operational outage!\n\n\\`\\`\\`yaml\n${$('Extract Final Metrics').item.json.final_report.replace(/\\* \\*\\text/g, '').replace(/\\*\\*/g, '').replace(/\\* /g, '')}\n\\`\\`\\`\n`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        -384
+      ],
+      "id": "efedf4ac-4f69-453c-96ea-94b97039e595",
+      "name": "Post RED Alert to Discord",
+      "webhookId": "f89a954b-960f-4207-961b-f63818cdcb1a",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "IqMdgVqNIOJK64cH",
+          "name": "Discord Webhook account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/sla_history.json",
+        "options": {
+          "fileExtension": "JSON"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "6014c1e8-a27b-4c9d-8f50-e8adacf07f7e",
+      "name": "Fetch Performance History Log"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Extract our metrics from the previous node\nconst rawReport = $('Extract Final Metrics').item.json.final_report;\n\n// Helper to grab numbers from the text report\nconst getMetric = (regex) => {\n  const match = rawReport.match(regex);\n  return match ? match[1] : '0';\n};\n\nconst processed = getMetric(/Total Tickets Processed:\\s*(\\d+)/);\nconst open = getMetric(/Active Open Tickets:\\s*(\\d+)/);\nconst outages = parseInt(getMetric(/Critical Outages Flagged:\\s*(\\d+)/) || 0);\nconst responseTime = getMetric(/Average Response Time:\\s*([\\d.]+)/);\n\n// 2. Set up our dynamic Obsidian Callouts\nlet statusCallout = '';\nif (outages > 0) {\n  statusCallout = `> [!danger] SLA STATUS: CRITICAL OUTAGE 🚨\n> **Action Required:** Our daily system check detected an active operational outage.`;\n} else {\n  statusCallout = `> [!success] SLA STATUS: HEALTHY 🟢\n> **All systems nominal.** No critical issues are currently impacting our SLA.`;\n}\n\n// 3. Build the beautiful final Markdown\nconst markdownReport = `# 📊 DAILY CONTACT CENTER SLA REPORT\n\n${statusCallout}\n\n---\n### 📈 Today's Performance Metrics\n* 📨 **Total Tickets Processed:** \\`${processed}\\`\n* 📂 **Active Open Tickets:** \\`${open}\\`\n* 🚨 **Critical Outages Flagged:** \\`${outages}\\`\n* ⏱️ **Average Response Time:** \\`${responseTime} mins\\`\n`;\n\nreturn [\n  {\n    json: {},\n    binary: {\n      data: {\n        data: Buffer.from(markdownReport, 'utf-8').toString('base64'),\n        mimeType: 'text/markdown',\n        fileName: 'file.md'\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        0
+      ],
+      "id": "ebad4beb-9c6a-4971-a3e2-0e847b92a6ae",
+      "name": "Format Final Written Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start: Daily 4PM Report Run": {
+      "main": [
+        [
+          {
+            "node": "Prepare Today's Raw Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Today's Raw Tickets": {
+      "main": [
+        [
+          {
+            "node": "Fetch Performance History Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate 7-Day Performance": {
+      "main": [
+        [
+          {
+            "node": "Package Past Performance Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package Past Performance Data": {
+      "main": [
+        [
+          {
+            "node": "Save Performance History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Performance History": {
+      "main": [
+        [
+          {
+            "node": "AI : Review System Performance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI : Review System Performance": {
+      "main": [
+        [
+          {
+            "node": "Send AI Commentary to Discord",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Final Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local AI Engine": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI : Review System Performance",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send AI Commentary to Discord": {
+      "main": [
+        []
+      ]
+    },
+    "Extract Final Metrics": {
+      "main": [
+        [
+          {
+            "node": "Check for Critical System Outages",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format Final Written Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Critical System Outages": {
+      "main": [
+        [
+          {
+            "node": "Post RED Alert to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post GREEN Status to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Performance History Log": {
+      "main": [
+        [
+          {
+            "node": "Calculate 7-Day Performance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Final Written Report": {
+      "main": [
+        [
+          {
+            "node": "Archive Report to Company Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9bfc815c-1d12-455b-a2f2-a71ed1c77321",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b9c5e6888f62626dfd3f892f3ce24a32a69db7b0024e777895b412e09a550c17"
+  },
+  "nodeGroups": [],
+  "id": "LQzrXz7NU6U2qqTW",
+  "tags": []
+}
