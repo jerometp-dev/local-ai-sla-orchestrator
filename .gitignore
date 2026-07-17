@@ -1,0 +1,16 @@
+# Sensitive Environment Variables / API Credentials
+.env
+*.env
+credentials.json
+
+# Local Testing Files & Backups
+# (Prevents accidentally pushing your personal tickets or active daily reports to GitHub)
+*.csv
+*.txt
+*.md
+!README.md
+!LICENSE
+
+# OS System files
+.DS_Store
+Thumbs.db
