@@ -66,20 +66,15 @@ The final step translates metrics into an optimized, scannable markdown format a
 * ⏱️ **Average Response Time:** `5.9 mins`
 ```
 ## ⚙️ How To Deploy Locally
-1. Prerequisites
-n8n Instance: Running locally or via Docker.
 
-Local AI Instance: Running an open-source LLM model endpoint locally.
+### 1. Prerequisites
+* **n8n Instance:** Running locally or via Docker.
+* **Local AI Instance:** Running an open-source LLM model endpoint locally.
+* **Obsidian App:** A local directory setup to receive incoming file writes.
 
-Obsidian App: A local directory setup to receive incoming file writes.
-
-2. Installation Steps
-Download the workflow.json blueprint file included in this repository.
-
-Open your n8n workspace, click your top-right menu icon, and click Import.
-
-Select the workflow.json file.
-
-Update your local directory credentials inside the Archive Report to Company Records node to point to your target directory path.
-
-Click Execute Workflow to run your first automated loop cycle.
+### 2. Installation Steps
+1. Download the `Local_AI_Analytics_Engine.json` blueprint file included in this repository.
+2. Open your n8n workspace, click your top-right menu icon, and click **Import**.
+3. Select the `Local_AI_Analytics_Engine.json` file.
+4. Update your local directory credentials inside the **Archive Report to Company Records** node to point to your target directory path.
+5. Click **Execute Workflow** to run your first automated loop cycle.
