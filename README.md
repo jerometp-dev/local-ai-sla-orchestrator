@@ -2,7 +2,14 @@
 
 A production-grade, privacy-first automation workflow built in n8n that processes daily contact center support telemetry, calculates trailing operational performance benchmarks, leverages a **locally hosted Large Language Model (LLM)** for executive analysis, and orchestrates live notifications alongside dynamic Markdown dashboards.
 
+## 📺 Project Walkthrough (2-Minute Demo)
+
+If you are a technical manager, business owner, or recruiter, click the link below to watch a quick video of this live system in action! I walk through how it runs automatically, saves teams hours of manual work, and safely processes data using private Artificial Intelligence.
+
+👉 **[Watch the Live Project Demonstration on Loom](https://www.loom.com/share/05fb5ef0b35b4cdfb41b75bf53ae3fd5)**
+
 ---
+
 
 ## 🚀 Architectural Overview
 
